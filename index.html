@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e1210">
+<title>переводчик</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    user-select:none;-webkit-user-select:none}
+  html,body{height:100%;overflow:hidden;background:#0e1210;color:#c8d0c4;
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;
+    -webkit-font-smoothing:antialiased}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  header{padding:14px 18px 12px;border-bottom:1px solid #2a2f2c;
+    display:flex;justify-content:space-between;align-items:center;gap:10px}
+  header h1{font-size:20px;font-weight:400;font-style:italic;
+    letter-spacing:.4px;flex:1}
+  header .snd{background:transparent;border:1px solid #2a2f2c;
+    color:#6a7468;font-family:inherit;font-size:11px;font-style:italic;
+    padding:5px 10px;border-radius:12px;cursor:pointer;
+    letter-spacing:.3px;transition:all .15s;white-space:nowrap}
+  header .snd.on{border-color:#7a9b76;color:#7a9b76;
+    background:rgba(122,155,118,.08)}
+  header .snd:active{transform:scale(.94)}
+  main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:16px 18px 40px}
+  .langs{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+  .lang-btn{flex:1;background:#151816;border:1px solid #2a2f2c;
+    color:#c8d0c4;font-family:inherit;font-size:14px;font-style:italic;
+    padding:12px 10px;border-radius:3px;cursor:pointer;
+    letter-spacing:.3px;transition:border-color .15s,background .15s;
+    text-align:center;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .lang-btn:active{background:#1a1e1c}
+  .lang-btn.on{border-color:#7a9b76;color:#7a9b76;
+    background:rgba(122,155,118,.08)}
+  .swap{flex:0 0 44px;background:transparent;border:1px solid #2a2f2c;
+    color:#8a9488;font-size:16px;padding:0;border-radius:3px;
+    height:44px;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;transition:all .15s}
+  .swap:active{background:#2a2f2c;color:#c8d0c4;transform:rotate(180deg)}
+
+  .input-box{background:#151816;border:1px solid #2a2f2c;
+    border-radius:3px;margin-bottom:12px;position:relative;
+    transition:border-color .2s}
+  .input-box:focus-within{border-color:#7a9b76}
+  textarea{width:100%;background:transparent;border:none;
+    color:#c8d0c4;font-family:inherit;font-size:16px;line-height:1.6;
+    padding:14px 16px 40px 16px;outline:none;resize:none;
+    min-height:110px;max-height:280px;
+    user-select:text;-webkit-user-select:text}
+  textarea::placeholder{color:#5a6258;font-style:italic}
+  .input-bar{position:absolute;bottom:0;left:0;right:0;
+    padding:8px 14px;display:flex;justify-content:space-between;
+    align-items:center;font-size:11px;color:#6a7468;font-style:italic;
+    letter-spacing:.3px;border-top:1px solid #1e2320;
+    background:rgba(21,24,22,.8);border-radius:0 0 3px 3px}
+  .input-bar .btns{display:flex;gap:6px}
+  .input-bar button{background:transparent;border:1px solid #2a2f2c;
+    color:#8a9488;font-family:inherit;font-size:11px;font-style:italic;
+    padding:5px 10px;border-radius:3px;cursor:pointer;
+    letter-spacing:.3px;transition:all .15s}
+  .input-bar button:active{background:#2a2f2c;color:#c8d0c4}
+
+  .go-btn{width:100%;background:transparent;border:1px solid #7a9b76;
+    color:#7a9b76;font-family:inherit;font-size:15px;font-style:italic;
+    padding:14px;border-radius:3px;cursor:pointer;letter-spacing:.5px;
+    transition:background .15s,color .15s;margin-bottom:18px}
+  .go-btn:active{background:#7a9b76;color:#0e1210}
+  .go-btn:disabled{opacity:.4;pointer-events:none}
+
+  .result{background:#151816;border:1px solid #2a2f2c;
+    border-radius:4px;padding:18px;margin-bottom:14px;
+    animation:resIn .4s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes resIn{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  .result .to{font-size:22px;color:#7a9b76;line-height:1.5;
+    word-break:break-word;user-select:text;-webkit-user-select:text;
+    white-space:pre-wrap}
+  .result .orig{margin-top:12px;padding-top:12px;
+    border-top:1px solid #1e2320;font-size:13px;color:#6a7468;
+    font-style:italic;line-height:1.6;
+    user-select:text;-webkit-user-select:text;white-space:pre-wrap}
+  .result .orig b{color:#8a9488;font-weight:400;font-style:normal}
+  .result .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .result .actions button{background:transparent;
+    border:1px solid #2a2f2c;color:#8a9488;font-family:inherit;
+    font-size:12px;font-style:italic;padding:9px 12px;
+    border-radius:3px;cursor:pointer;letter-spacing:.3px;
+    transition:all .15s;flex:1;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result .actions button:active{background:#2a2f2c;color:#c8d0c4}
+  .result .actions .main{border-color:#7a9b76;color:#7a9b76}
+  .result .actions .main:active{background:#7a9b76;color:#0e1210}
+
+  .spinner{display:inline-block;width:14px;height:14px;
+    border:2px solid #2a2f2c;border-top-color:#7a9b76;border-radius:50%;
+    animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .status{text-align:center;color:#8a9488;font-style:italic;
+    font-size:13px;line-height:1.7;padding:24px 0}
+  .status.err{color:#c96f4a}
+
+  .history{margin-top:14px}
+  .history .label{font-size:11px;color:#6a7468;font-style:italic;
+    letter-spacing:.6px;margin-bottom:8px;display:flex;
+    justify-content:space-between;align-items:center}
+  .history .label button{background:transparent;border:none;
+    color:#8a9488;font-family:inherit;font-size:11px;font-style:italic;
+    cursor:pointer;padding:4px 8px;letter-spacing:.3px}
+  .history .label button:active{color:#c96f4a}
+  .hist-item{padding:11px 14px;font-size:14px;
+    background:#151816;border:1px solid #1e2320;border-radius:3px;
+    margin-bottom:6px;cursor:pointer;
+    transition:border-color .15s;
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .hist-item:active{border-color:#7a9b76}
+  .hist-item .src{color:#8a9488;font-style:italic;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    flex:1;min-width:0}
+  .hist-item .dst{color:#c8d0c4;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    flex:0 0 auto;max-width:45%}
+  .hist-item .lang{font-size:10px;color:#5a6258;letter-spacing:.6px;
+    margin-right:6px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:#7a9b76;color:#0e1210;padding:9px 18px;border-radius:3px;
+    font-size:13px;font-style:italic;opacity:0;pointer-events:none;
+    transition:opacity .25s;z-index:300;letter-spacing:.3px;
+    max-width:80%;text-align:center;line-height:1.5}
+  .toast.show{opacity:1}
+  @media(hover:none) and (pointer:coarse){body{cursor:default}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>переводчик</h1>
+    <button class="snd on" id="sndBtn">звук: вкл</button>
+  </header>
+
+  <main>
+    <div class="langs">
+      <button class="lang-btn on" id="langFrom">русский</button>
+      <button class="swap" id="swapBtn" title="поменять">⇄</button>
+      <button class="lang-btn" id="langTo">английский</button>
+    </div>
+
+    <div class="input-box">
+      <textarea id="inp" placeholder="введи слово, фразу или целый текст"
+        maxlength="5000" spellcheck="false" autocapitalize="sentences"
+        autocorrect="off"></textarea>
+      <div class="input-bar">
+        <span><span id="charCount">0</span> / 5000</span>
+        <div class="btns">
+          <button id="pasteBtn">вставить</button>
+          <button id="clearBtn">очистить</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="go-btn" id="goBtn">перевести</button>
+
+    <div id="out"></div>
+
+    <div class="history" id="historyBox" style="display:none">
+      <div class="label">
+        <span>история</span>
+        <button id="clearHist">очистить</button>
+      </div>
+      <div id="histList"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s)};
+
+// ============================================================
+// ЗВУКИ
+// ============================================================
+var AC=null, muted=false;
+try{ muted = localStorage.getItem("tr.muted")==="1"; }catch(e){}
+
+function ac(){
+  if(!AC){
+    try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){}
+  }
+  return AC;
+}
+function tone(freq, dur, type, vol, when, freqEnd){
+  var c=ac(); if(!c||muted) return;
+  var o=c.createOscillator();
+  var g=c.createGain();
+  o.type=type||"sine";
+  o.frequency.value=freq;
+  var t=c.currentTime+(when||0);
+  if(freqEnd){
+    o.frequency.setValueAtTime(freq, t);
+    o.frequency.exponentialRampToValueAtTime(freqEnd, t+dur);
+  }
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol||0.04, t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g);
+  g.connect(c.destination);
+  o.start(t);
+  o.stop(t+dur+0.02);
+}
+function sTap(){ tone(880, 0.04, "sine", 0.03); }
+function sOk(){
+  tone(880, 0.09, "sine", 0.035, 0);
+  tone(660, 0.12, "sine", 0.03, 0.05);
+}
+function sErr(){ tone(320, 0.18, "sine", 0.035, 0, 220); }
+function sCopy(){
+  tone(1320, 0.06, "sine", 0.03);
+  tone(1760, 0.08, "sine", 0.025, 0.03);
+}
+function sLang(){
+  tone(660, 0.07, "sine", 0.03);
+  tone(880, 0.09, "sine", 0.025, 0.03);
+}
+function sSwap(){
+  tone(600, 0.1, "sine", 0.035, 0, 900);
+  tone(900, 0.1, "sine", 0.025, 0.08, 600);
+}
+function sToggle(on){
+  if(on){ tone(660, 0.06, "sine", 0.03); tone(990, 0.08, "sine", 0.025, 0.03); }
+  else { tone(500, 0.06, "sine", 0.03); tone(360, 0.08, "sine", 0.025, 0.03); }
+}
+
+var $sndBtn=$("#sndBtn");
+function updateSndUI(){
+  $sndBtn.textContent="звук: "+(muted?"выкл":"вкл");
+  $sndBtn.classList.toggle("on", !muted);
+}
+updateSndUI();
+$sndBtn.addEventListener("click", function(e){
+  e.stopPropagation();
+  muted=!muted;
+  try{ localStorage.setItem("tr.muted", muted?"1":"0"); }catch(e){}
+  updateSndUI();
+  sToggle(!muted);
+});
+document.addEventListener("touchstart", function(){
+  var c=ac();
+  if(c && c.state==="suspended") c.resume();
+}, {passive:true, once:true});
+document.addEventListener("click", function(){
+  var c=ac();
+  if(c && c.state==="suspended") c.resume();
+}, {once:true});
+
+// ============================================================
+// ЯЗЫКИ
+// ============================================================
+var LANGS={
+  ru:{name:"русский"}, en:{name:"английский"},
+  de:{name:"немецкий"}, fr:{name:"французский"},
+  es:{name:"испанский"}, it:{name:"итальянский"},
+  pt:{name:"португальский"}, pl:{name:"польский"},
+  uk:{name:"украинский"}, be:{name:"белорусский"},
+  tr:{name:"турецкий"}, ar:{name:"арабский"},
+  zh:{name:"китайский"}, ja:{name:"японский"},
+  ko:{name:"корейский"}, hi:{name:"хинди"},
+  nl:{name:"нидерландский"}, sv:{name:"шведский"},
+  cs:{name:"чешский"}, el:{name:"греческий"},
+  he:{name:"иврит"}, fa:{name:"персидский"},
+  vi:{name:"вьетнамский"}, th:{name:"тайский"},
+  no:{name:"норвежский"}, da:{name:"датский"},
+  fi:{name:"финский"}, hu:{name:"венгерский"},
+  ro:{name:"румынский"}, bg:{name:"болгарский"},
+  sr:{name:"сербский"}, hr:{name:"хорватский"},
+  sk:{name:"словацкий"}, sl:{name:"словенский"},
+  lt:{name:"литовский"}, lv:{name:"латышский"},
+  et:{name:"эстонский"}, ka:{name:"грузинский"},
+  hy:{name:"армянский"}, az:{name:"азербайджанский"},
+  kk:{name:"казахский"}, uz:{name:"узбекский"},
+  id:{name:"индонезийский"}, ms:{name:"малайский"},
+  tl:{name:"филиппинский"}
+};
+var LANG_ORDER=["ru","en","de","fr","es","it","pt","pl","uk","be","tr",
+  "ar","zh","ja","ko","hi","nl","sv","cs","el","he","fa","vi","th",
+  "no","da","fi","hu","ro","bg","sr","hr","sk","sl","lt","lv","et",
+  "ka","hy","az","kk","uz","id","ms","tl"];
+
+var $langFrom=$("#langFrom"), $langTo=$("#langTo");
+var $swap=$("#swapBtn");
+var $inp=$("#inp"), $goBtn=$("#goBtn");
+var $out=$("#out");
+var $charCount=$("#charCount");
+var $pasteBtn=$("#pasteBtn"), $clearBtn=$("#clearBtn");
+var $histBox=$("#historyBox"), $histList=$("#histList");
+var $clearHist=$("#clearHist");
+
+var fromLang="ru", toLang="en";
+try{
+  var saved=JSON.parse(localStorage.getItem("tr.langs")||"null");
+  if(saved && saved.from && saved.to){
+    fromLang=saved.from; toLang=saved.to;
+  }
+}catch(e){}
+
+var history=[];
+var HKEY="translator.hist.v7";
+try{ history=JSON.parse(localStorage.getItem(HKEY)||"[]"); }
+catch(e){ history=[]; }
+if(!Array.isArray(history)) history=[];
+
+function toast(msg){
+  var t=$("#toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t=setTimeout(function(){ t.classList.remove("show"); }, 2200);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function updateLangButtons(){
+  $langFrom.textContent=LANGS[fromLang].name;
+  $langTo.textContent=LANGS[toLang].name;
+  try{
+    localStorage.setItem("tr.langs", JSON.stringify({
+      from:fromLang, to:toLang
+    }));
+  }catch(e){}
+}
+
+function showLangPicker(current, cb){
+  var $ov=document.createElement("div");
+  $ov.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;"+
+    "display:flex;align-items:center;justify-content:center;padding:20px";
+  var $box=document.createElement("div");
+  $box.style.cssText =
+    "background:#151816;border:1px solid #2a2f2c;border-radius:4px;"+
+    "padding:16px;max-width:440px;width:100%;max-height:85vh;"+
+    "overflow-y:auto;-webkit-overflow-scrolling:touch";
+  var html='<div style="font-size:12px;color:#6a7468;font-style:italic;'+
+    'letter-spacing:.6px;margin-bottom:12px">выбери язык</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  LANG_ORDER.forEach(function(code){
+    var on = code===current;
+    html+='<button data-code="'+code+'" style="'+
+      "background:"+(on?"rgba(122,155,118,.12)":"transparent")+";"+
+      "border:1px solid "+(on?"#7a9b76":"#2a2f2c")+";"+
+      "color:"+(on?"#7a9b76":"#c8d0c4")+";"+
+      "font-family:inherit;font-size:13px;font-style:italic;"+
+      "padding:11px 8px;border-radius:3px;cursor:pointer;"+
+      "letter-spacing:.3px;text-align:center"+
+      '">'+esc(LANGS[code].name)+'</button>';
+  });
+  html+='</div>';
+  $box.innerHTML=html;
+  $ov.appendChild($box);
+  document.body.appendChild($ov);
+  $box.querySelectorAll("button[data-code]").forEach(function(b){
+    b.addEventListener("click", function(){
+      cb(b.dataset.code);
+      document.body.removeChild($ov);
+    });
+  });
+  $ov.addEventListener("click", function(e){
+    if(e.target===$ov) document.body.removeChild($ov);
+  });
+}
+$langFrom.addEventListener("click", function(){
+  sLang();
+  showLangPicker(fromLang, function(code){
+    fromLang=code;
+    if(fromLang===toLang) toLang = fromLang==="ru" ? "en" : "ru";
+    updateLangButtons();
+    if($inp.value.trim()) doTranslate();
+  });
+});
+$langTo.addEventListener("click", function(){
+  sLang();
+  showLangPicker(toLang, function(code){
+    toLang=code;
+    if(toLang===fromLang) fromLang = toLang==="ru" ? "en" : "ru";
+    updateLangButtons();
+    if($inp.value.trim()) doTranslate();
+  });
+});
+$swap.addEventListener("click", function(){
+  sSwap();
+  var t=fromLang; fromLang=toLang; toLang=t;
+  updateLangButtons();
+  if($inp.value.trim()) doTranslate();
+  toast("поменял языки");
+});
+
+// ============================================================
+// КЭШ
+// ============================================================
+var CACHE={};
+var CACHE_MAX=200;
+function cacheGet(t, f, to){ return CACHE[f+"|"+to+"|"+t] || null; }
+function cacheSet(t, f, to, v){
+  CACHE[f+"|"+to+"|"+t]=v;
+  var keys=Object.keys(CACHE);
+  if(keys.length>CACHE_MAX){
+    for(var i=0;i<50;i++) delete CACHE[keys[i]];
+  }
+}
+
+// ============================================================
+// ПЕРЕВОД
+// ============================================================
+async function googleTranslate(text, from, to){
+  var cached=cacheGet(text, from, to);
+  if(cached) return cached;
+  var url = "https://translate.googleapis.com/translate_a/single" +
+    "?client=gtx&sl=" + encodeURIComponent(from) +
+    "&tl=" + encodeURIComponent(to) +
+    "&dt=t&q=" + encodeURIComponent(text);
+  var resp = await fetchWithFallback(url);
+  var data = await resp.json();
+  if(!data || !data[0]) throw new Error("пустой ответ");
+  var result = "";
+  for(var i=0;i<data[0].length;i++){
+    var chunk = data[0][i];
+    if(chunk && chunk[0]) result += chunk[0];
+  }
+  cacheSet(text, from, to, result);
+  return result;
+}
+async function fetchWithFallback(url){
+  try{
+    var r = await fetch(url);
+    if(r.ok) return r;
+  }catch(e){}
+  var proxies=[
+    function(u){ return "https://api.allorigins.win/raw?url="+encodeURIComponent(u); },
+    function(u){ return "https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u); },
+    function(u){ return "https://corsproxy.io/?url="+encodeURIComponent(u); }
+  ];
+  var lastErr=null;
+  for(var i=0;i<proxies.length;i++){
+    try{
+      var rr=await fetch(proxies[i](url));
+      if(rr.ok) return rr;
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error("все запросы не удались");
+}
+
+var translating=false;
+async function doTranslate(){
+  if(translating) return;
+  var text = $inp.value.trim();
+  if(!text){ toast("введи текст"); sErr(); return; }
+  if(fromLang===toLang){ toast("выбери разные языки"); sErr(); return; }
+  if(text.length > 5000){
+    text = text.slice(0, 5000);
+    $inp.value = text;
+    updateCharCount();
+    toast("обрезал до 5000 символов");
+  }
+  translating = true;
+  $goBtn.disabled = true;
+  sTap();
+  $out.innerHTML = '<div class="status">' +
+    '<span class="spinner"></span>перевожу…</div>';
+  try{
+    var translated;
+    if(text.length > 1800){
+      translated = await translateLong(text, fromLang, toLang);
+    } else {
+      translated = await googleTranslate(text, fromLang, toLang);
+    }
+    render(text, translated);
+    addHistory(text, translated);
+    sOk();
+  }catch(e){
+    $out.innerHTML = '<div class="status err">' +
+      'не удалось перевести: ' + esc(e.message || e) +
+      '<br><br><span style="font-size:11px">' +
+      'проверь интернет, или попробуй через минуту.</span></div>';
+    sErr();
+  }
+  translating = false;
+  $goBtn.disabled = false;
+}
+
+async function translateLong(text, from, to){
+  var parts = splitText(text, 1500);
+  var out = [];
+  for(var i=0;i<parts.length;i++){
+    var pct = Math.round((i/parts.length)*100);
+    $out.innerHTML = '<div class="status">' +
+      '<span class="spinner"></span>перевожу… '+pct+'% ('+
+      (i+1)+' из '+parts.length+')</div>';
+    var t = await googleTranslate(parts[i], from, to);
+    out.push(t);
+  }
+  return out.join("\n\n");
+}
+
+function splitText(text, maxLen){
+  var parts = [];
+  var current = "";
+  var paras = text.split(/\n\s*\n/);
+  for(var i=0;i<paras.length;i++){
+    var para = paras[i];
+    if(!para.trim()){
+      if(current) { parts.push(current.trim()); current=""; }
+      continue;
+    }
+    if((current + "\n\n" + para).length <= maxLen){
+      current = current ? (current + "\n\n" + para) : para;
+    } else {
+      if(current){ parts.push(current.trim()); current=""; }
+      if(para.length > maxLen){
+        var sentences = para.match(/[^.!?…]+[.!?…]+[\s]*|[^.!?…]+$/g) || [para];
+        var sent = "";
+        for(var j=0;j<sentences.length;j++){
+          var s = sentences[j];
+          if((sent + " " + s).length <= maxLen){
+            sent = sent ? (sent + " " + s) : s;
+          } else {
+            if(sent){ parts.push(sent.trim()); sent=""; }
+            if(s.length > maxLen){
+              var words = s.split(/\s+/);
+              var line="";
+              for(var k=0;k<words.length;k++){
+                var w=words[k];
+                if((line + " " + w).length <= maxLen){
+                  line = line ? (line + " " + w) : w;
+                } else {
+                  parts.push(line); line = w;
+                }
+              }
+              if(line) sent = line;
+            } else {
+              sent = s;
+            }
+          }
+        }
+        if(sent) parts.push(sent.trim());
+      } else {
+        current = para;
+      }
+    }
+  }
+  if(current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+// ============================================================
+// РЕНДЕР
+// ============================================================
+function render(original, translation){
+  var html = "";
+  html += '<div class="result">';
+  html += '<div class="to">'+esc(translation)+'</div>';
+  html += '<div class="orig"><b>оригинал:</b><br>'+esc(original)+'</div>';
+  html += '<div class="actions">';
+  html += '<button class="main" id="copyBtn">копировать</button>';
+  html += '<button id="reverseBtn">обратно</button>';
+  if(navigator.share){
+    html += '<button id="shareBtn">поделиться</button>';
+  }
+  html += '</div>';
+  html += '</div>';
+  $out.innerHTML = html;
+
+  $("#copyBtn").addEventListener("click", function(){
+    copyText(translation);
+    toast("скопировано");
+    sCopy();
+  });
+
+  $("#reverseBtn").addEventListener("click", function(){
+    sSwap();
+    var t=fromLang; fromLang=toLang; toLang=t;
+    updateLangButtons();
+    $inp.value = translation;
+    updateCharCount();
+    doTranslate();
+  });
+
+  if(navigator.share){
+    $("#shareBtn").addEventListener("click", function(){
+      navigator.share({
+        text: translation + "\n\n(оригинал: " + original + ")"
+      }).catch(function(){});
+    });
+  }
+}
+
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(function(){ fallback(text); });
+  } else fallback(text);
+}
+function fallback(text){
+  var ta=document.createElement("textarea");
+  ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+// ============================================================
+// ИСТОРИЯ
+// ============================================================
+function addHistory(src, dst){
+  history = history.filter(function(h){
+    return !(h.src===src && h.from===fromLang && h.to===toLang);
+  });
+  history.unshift({
+    src: src, dst: dst,
+    from: fromLang, to: toLang,
+    ts: Date.now()
+  });
+  if(history.length > 20) history.length = 20;
+  try{ localStorage.setItem(HKEY, JSON.stringify(history)); }catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  if(!history.length){ $histBox.style.display="none"; return; }
+  $histBox.style.display = "";
+  var html = "";
+  for(var i=0;i<history.length;i++){
+    var h = history[i];
+    var src = h.src.length > 60 ? h.src.slice(0,60)+"…" : h.src;
+    var dst = h.dst.length > 60 ? h.dst.slice(0,60)+"…" : h.dst;
+    html += '<div class="hist-item" data-src="'+esc(h.src)+'" '+
+      'data-from="'+esc(h.from)+'" data-to="'+esc(h.to)+'">'+
+      '<span class="src"><span class="lang">'+
+      h.from.toUpperCase()+'→'+h.to.toUpperCase()+'</span> '+
+      esc(src)+'</span>'+
+      '<span class="dst">'+esc(dst)+'</span>'+
+      '</div>';
+  }
+  $histList.innerHTML = html;
+  $histList.querySelectorAll(".hist-item").forEach(function(el){
+    el.addEventListener("click", function(){
+      sTap();
+      $inp.value = el.dataset.src;
+      fromLang = el.dataset.from;
+      toLang = el.dataset.to;
+      updateLangButtons();
+      updateCharCount();
+      doTranslate();
+    });
+  });
+}
+$clearHist.addEventListener("click", function(){
+  if(!confirm("очистить историю?")) return;
+  history = [];
+  try{ localStorage.removeItem(HKEY); }catch(e){}
+  renderHistory();
+  toast("очищено");
+  sTap();
+});
+
+// ============================================================
+// СОБЫТИЯ
+// ============================================================
+function updateCharCount(){
+  $charCount.textContent = $inp.value.length;
+}
+$inp.addEventListener("input", updateCharCount);
+$inp.addEventListener("keydown", function(e){
+  if((e.ctrlKey||e.metaKey) && e.key==="Enter"){
+    e.preventDefault();
+    doTranslate();
+  }
+});
+$goBtn.addEventListener("click", doTranslate);
+
+$pasteBtn.addEventListener("click", async function(){
+  sTap();
+  try{
+    if(navigator.clipboard && navigator.clipboard.readText){
+      var t = await navigator.clipboard.readText();
+      if(t){
+        $inp.value = t;
+        updateCharCount();
+        return;
+      }
+    }
+    $inp.focus();
+    toast("вставь вручную");
+  }catch(e){
+    $inp.focus();
+    toast("вставь вручную");
+  }
+});
+$clearBtn.addEventListener("click", function(){
+  sTap();
+  $inp.value = "";
+  updateCharCount();
+  $out.innerHTML = "";
+  $inp.focus();
+});
+
+$inp.addEventListener("paste", function(){
+  setTimeout(function(){
+    updateCharCount();
+    var v=$inp.value.trim();
+    if(v.length >= 2 && v.length <= 200){
+      doTranslate();
+    }
+  }, 60);
+});
+
+// init
+updateLangButtons();
+updateCharCount();
+renderHistory();
+
+})();
+</script>
+</body>
+</html>
